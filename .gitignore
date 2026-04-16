@@ -1,3 +1,4 @@
 .vscode/
 /build/
 /src/third_party/wayland/protocols/*
+/engine/
