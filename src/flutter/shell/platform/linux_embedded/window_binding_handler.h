@@ -25,6 +25,7 @@ struct PhysicalWindowBounds {
 // Structure containing text input type information from Flutter.
 struct TextInputTypeInfo {
   std::string input_type;           // e.g. "TextInputType.text"
+  std::string input_action;         // e.g. "TextInputAction.done"
   bool obscure_text = false;
   bool autocorrect = true;
   bool enable_suggestions = true;

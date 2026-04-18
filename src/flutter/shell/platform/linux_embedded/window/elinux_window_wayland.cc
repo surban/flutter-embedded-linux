@@ -19,6 +19,7 @@
 
 #include "flutter/shell/platform/linux_embedded/logger.h"
 #include "flutter/shell/platform/linux_embedded/surface/context_egl.h"
+#include "flutter/shell/platform/linux_embedded/text_input_action.h"
 
 namespace flutter {
 
@@ -1917,6 +1918,23 @@ uint32_t ELinuxWindowWayland::GetWaylandContentPurposeV3() const {
   return ZWP_TEXT_INPUT_V3_CONTENT_PURPOSE_NORMAL;
 }
 
+static uint32_t EncodeInputAction(const std::string& action) {
+  if (action == "TextInputAction.none")           return kTextInputActionNone;
+  if (action == "TextInputAction.unspecified")    return kTextInputActionUnspecified;
+  if (action == "TextInputAction.done")           return kTextInputActionDone;
+  if (action == "TextInputAction.go")             return kTextInputActionGo;
+  if (action == "TextInputAction.search")         return kTextInputActionSearch;
+  if (action == "TextInputAction.send")           return kTextInputActionSend;
+  if (action == "TextInputAction.next")           return kTextInputActionNext;
+  if (action == "TextInputAction.previous")       return kTextInputActionPrevious;
+  if (action == "TextInputAction.continueAction") return kTextInputActionContinue;
+  if (action == "TextInputAction.join")           return kTextInputActionJoin;
+  if (action == "TextInputAction.route")          return kTextInputActionRoute;
+  if (action == "TextInputAction.emergencyCall")  return kTextInputActionEmergencyCall;
+  if (action == "TextInputAction.newline")        return kTextInputActionNewline;
+  return kTextInputActionUnspecified;
+}
+
 uint32_t ELinuxWindowWayland::GetWaylandContentHintV3() const {
   uint32_t hints = ZWP_TEXT_INPUT_V3_CONTENT_HINT_NONE;
 
@@ -1941,6 +1959,9 @@ uint32_t ELinuxWindowWayland::GetWaylandContentHintV3() const {
   } else if (cap == "TextCapitalization.sentences") {
     hints |= ZWP_TEXT_INPUT_V3_CONTENT_HINT_AUTO_CAPITALIZATION;
   }
+
+  hints |= EncodeInputAction(input_type_info_.input_action);
+
   return hints;
 }
 
@@ -1990,6 +2011,9 @@ uint32_t ELinuxWindowWayland::GetWaylandContentHintV1() const {
   } else if (cap == "TextCapitalization.sentences") {
     hints |= ZWP_TEXT_INPUT_V1_CONTENT_HINT_AUTO_CAPITALIZATION;
   }
+
+  hints |= EncodeInputAction(input_type_info_.input_action);
+
   return hints;
 }
 

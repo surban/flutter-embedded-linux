@@ -123,6 +123,7 @@ void TextInputPlugin::HandleMethodCall(
   if (method.compare(kShowMethod) == 0) {
     TextInputTypeInfo info;
     info.input_type = input_type_;
+    info.input_action = input_action_;
     info.obscure_text = obscure_text_;
     info.autocorrect = autocorrect_;
     info.enable_suggestions = enable_suggestions_;
