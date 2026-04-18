@@ -30,6 +30,7 @@ struct TextInputTypeInfo {
   bool autocorrect = true;
   bool enable_suggestions = true;
   std::string text_capitalization;  // e.g. "TextCapitalization.sentences"
+  std::string preferred_language;   // BCP 47 tag, e.g. "de-DE"
 };
 
 using ELinuxRenderSurfaceTarget = SurfaceGl;

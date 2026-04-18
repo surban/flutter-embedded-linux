@@ -1887,6 +1887,8 @@ void ELinuxWindowWayland::ShowVirtualKeyboard() {
       zwp_text_input_v1_set_content_type(zwp_text_input_v1_,
                                          GetWaylandContentHintV1(),
                                          GetWaylandContentPurposeV1());
+      zwp_text_input_v1_set_preferred_language(zwp_text_input_v1_,
+                                               input_type_info_.preferred_language.c_str());
     }
   }
 }

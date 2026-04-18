@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include "flutter/shell/platform/common/json_method_codec.h"
+#include "flutter/shell/platform/common/client_wrapper/include/flutter/standard_method_codec.h"
 
 // Avoids the following build error:
 // ----------------------------------------------------------------
@@ -26,6 +27,8 @@ namespace flutter {
 
 namespace {
 constexpr char kChannelName[] = "flutter/textinput";
+constexpr char kELinuxChannelName[] = "elinux/textinput";
+constexpr char kSetInputLocaleMethod[] = "setInputLocale";
 
 constexpr char kSetEditingStateMethod[] = "TextInput.setEditingState";
 constexpr char kClearClientMethod[] = "TextInput.clearClient";
@@ -105,6 +108,11 @@ TextInputPlugin::TextInputPlugin(BinaryMessenger* messenger,
           messenger,
           kChannelName,
           &flutter::JsonMethodCodec::GetInstance())),
+      elinux_channel_(
+          std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+              messenger,
+              kELinuxChannelName,
+              &flutter::StandardMethodCodec::GetInstance())),
       delegate_(delegate),
       active_model_(nullptr) {
   channel_->SetMethodCallHandler(
@@ -112,6 +120,24 @@ TextInputPlugin::TextInputPlugin(BinaryMessenger* messenger,
           const flutter::MethodCall<rapidjson::Document>& call,
           std::unique_ptr<flutter::MethodResult<rapidjson::Document>> result) {
         HandleMethodCall(call, std::move(result));
+      });
+  elinux_channel_->SetMethodCallHandler(
+      [this](
+          const flutter::MethodCall<flutter::EncodableValue>& call,
+          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+              result) {
+        const std::string& method = call.method_name();
+        if (method == kSetInputLocaleMethod) {
+          if (call.arguments() &&
+              std::holds_alternative<std::string>(*call.arguments())) {
+            input_locale_ = std::get<std::string>(*call.arguments());
+          } else {
+            input_locale_.clear();
+          }
+          result->Success();
+        } else {
+          result->NotImplemented();
+        }
       });
 }
 
@@ -128,6 +154,7 @@ void TextInputPlugin::HandleMethodCall(
     info.autocorrect = autocorrect_;
     info.enable_suggestions = enable_suggestions_;
     info.text_capitalization = text_capitalization_;
+    info.preferred_language = input_locale_;
     delegate_->UpdateVirtualKeyboardStatus(true, info);
   } else if (method.compare(kHideMethod) == 0) {
     delegate_->UpdateVirtualKeyboardStatus(false);

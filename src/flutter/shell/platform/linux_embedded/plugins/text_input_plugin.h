@@ -38,6 +38,10 @@ class TextInputPlugin {
   // The MethodChannel used for communication with the Flutter engine.
   std::unique_ptr<flutter::MethodChannel<rapidjson::Document>> channel_;
 
+  // Custom channel for embedder-specific text input settings.
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
+      elinux_channel_;
+
   // The active client id.
   int client_id_ = 0;
 
@@ -64,6 +68,9 @@ class TextInputPlugin {
   // An action requested by the user on the input client. See available options:
   // https://docs.flutter.io/flutter/services/TextInputAction-class.html
   std::string input_action_;
+
+  // Preferred input language (BCP 47 tag) set via elinux/textinput channel.
+  std::string input_locale_;
 
   // The delegate for virtual keyboard updates.
   WindowBindingHandler* delegate_;
