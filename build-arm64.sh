@@ -31,5 +31,3 @@ cmake --build . --parallel
 cp -fv libflutter_elinux_wayland.so ~/flutter-elinux/flutter/bin/cache/artifacts/engine/elinux-arm64-debug/
 cp -fv libflutter_elinux_wayland.so ~/flutter-elinux/flutter/bin/cache/artifacts/engine/elinux-arm64-profile/
 cp -fv libflutter_elinux_wayland.so ~/flutter-elinux/flutter/bin/cache/artifacts/engine/elinux-arm64-release/
-
-cp -fv libflutter_elinux_wayland.so /workspaces/raumscan/apps/raumscan/flutter-elinux-engine-lib/aarch64/
