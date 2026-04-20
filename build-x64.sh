@@ -14,10 +14,15 @@ fi
 popd
 
 # Build Flutter embedder
-mkdir -p build
-cd build
-cp -fv ../engine/$ENGINE_VERSION/x64/libflutter_engine.so .
-cmake -DBUILD_ELINUX_SO=ON -DBACKEND_TYPE=WAYLAND -DCMAKE_BUILD_TYPE=Release -DFLUTTER_RELEASE=ON ..
+BUILD_DIR=${BUILD_DIR:-build-x64}
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+cmake -DBUILD_ELINUX_SO=ON \
+      -DBACKEND_TYPE=WAYLAND \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DFLUTTER_RELEASE=ON \
+      -DFLUTTER_EMBEDDER_LIB="$PWD/../engine/$ENGINE_VERSION/x64/libflutter_engine.so" \
+      ..
 cmake --build . --parallel
 
 # Install Flutter embedder
