@@ -6,7 +6,10 @@
 
 #include <linux/input-event-codes.h>
 
+#include <codecvt>
 #include <iostream>
+#include <locale>
+#include <string>
 
 #include "flutter/shell/platform/common/json_method_codec.h"
 #include "flutter/shell/platform/common/client_wrapper/include/flutter/standard_method_codec.h"
@@ -62,6 +65,21 @@ constexpr char kTextCapitalizationKey[] = "textCapitalization";
 
 constexpr char kBadArgumentError[] = "Bad Arguments";
 constexpr char kInternalConsistencyError[] = "Internal Consistency Error";
+
+// Converts a UTF-16 code-unit offset into the equivalent UTF-8 byte offset
+// within |utf8|. Out-of-range offsets are clamped to the string bounds.
+int32_t Utf16OffsetToUtf8Bytes(const std::string& utf8, int32_t utf16_offset) {
+  if (utf16_offset <= 0 || utf8.empty()) {
+    return 0;
+  }
+  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> conv;
+  std::u16string utf16 = conv.from_bytes(utf8);
+  if (static_cast<size_t>(utf16_offset) >= utf16.size()) {
+    return static_cast<int32_t>(utf8.size());
+  }
+  std::string prefix = conv.to_bytes(utf16.substr(0, utf16_offset));
+  return static_cast<int32_t>(prefix.size());
+}
 }  // namespace
 
 void TextInputPlugin::OnKeyPressed(uint32_t keycode, uint32_t code_point) {
@@ -184,6 +202,10 @@ void TextInputPlugin::HandleMethodCall(
     delegate_->UpdateVirtualKeyboardStatus(false);
   } else if (method.compare(kClearClientMethod) == 0) {
     active_model_ = nullptr;
+    // Clear the platform IME's surrounding-text cache.
+    if (delegate_) {
+      delegate_->UpdateTextInputState("", 0, 0);
+    }
   } else if (method.compare(kSetClientMethod) == 0) {
     if (!method_call.arguments() || method_call.arguments()->IsNull()) {
       result->Error(kBadArgumentError, "Method invoked without args");
@@ -249,6 +271,8 @@ void TextInputPlugin::HandleMethodCall(
       text_capitalization_ = text_capitalization_json->value.GetString();
     }
     active_model_ = std::make_unique<TextInputModel>();
+    // Reset the platform IME's surrounding-text cache for the fresh client.
+    PushSurroundingTextToDelegate(*active_model_);
   } else if (method.compare(kSetEditingStateMethod) == 0) {
     if (!method_call.arguments() || method_call.arguments()->IsNull()) {
       result->Error(kBadArgumentError, "Method invoked without args");
@@ -285,6 +309,7 @@ void TextInputPlugin::HandleMethodCall(
     }
     active_model_->SetText(text->value.GetString());
     active_model_->SetSelection(TextRange(base, extent));
+    PushSurroundingTextToDelegate(*active_model_);
   } else {
     result->NotImplemented();
     return;
@@ -313,6 +338,21 @@ void TextInputPlugin::SendStateUpdate(const TextInputModel& model) {
   args->PushBack(editing_state, allocator);
 
   channel_->InvokeMethod(kUpdateEditingStateMethod, std::move(args));
+
+  // Mirror the new state to the platform IME.
+  PushSurroundingTextToDelegate(model);
+}
+
+void TextInputPlugin::PushSurroundingTextToDelegate(
+    const TextInputModel& model) {
+  if (!delegate_) {
+    return;
+  }
+  const std::string utf8 = model.GetText();
+  TextRange selection = model.selection();
+  int32_t cursor_bytes = Utf16OffsetToUtf8Bytes(utf8, selection.extent());
+  int32_t anchor_bytes = Utf16OffsetToUtf8Bytes(utf8, selection.base());
+  delegate_->UpdateTextInputState(utf8, cursor_bytes, anchor_bytes);
 }
 
 void TextInputPlugin::EnterPressed(TextInputModel* model) {

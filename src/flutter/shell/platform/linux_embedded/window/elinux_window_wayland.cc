@@ -735,12 +735,10 @@ const zwp_text_input_v1_listener ELinuxWindowWayland::kZwpTextInputV1Listener =
           ELINUX_LOG(TRACE) << "zwp_text_input_v1_listener.enter";
 
           auto self = reinterpret_cast<ELinuxWindowWayland*>(data);
-          // If there is no input data, the backspace key cannot be used,
-          // so set dummy data.
-          if (self->zwp_text_input_v1_) {
-            zwp_text_input_v1_set_surrounding_text(self->zwp_text_input_v1_,
-                                                   " ", 1, 1);
-          }
+          // Prime the IME with the current Flutter-side text so that features
+          // depending on surrounding content (auto-capitalization, backspace,
+          // etc.) work from the first keystroke.
+          self->SendSurroundingTextToCompositor();
         },
         .leave = [](void* data, zwp_text_input_v1* zwp_text_input_v1) -> void {
           ELINUX_LOG(TRACE) << "zwp_text_input_v1_listener.leave";
@@ -776,10 +774,6 @@ const zwp_text_input_v1_listener ELinuxWindowWayland::kZwpTextInputV1Listener =
           }
           if (self->zwp_text_input_v1_) {
             zwp_text_input_v1_reset(self->zwp_text_input_v1_);
-            // If there is no input data, the backspace key cannot be used,
-            // so set dummy data.
-            zwp_text_input_v1_set_surrounding_text(self->zwp_text_input_v1_,
-                                                   " ", 1, 1);
           }
         },
         .preedit_styling = [](void* data,
@@ -808,12 +802,8 @@ const zwp_text_input_v1_listener ELinuxWindowWayland::kZwpTextInputV1Listener =
             std::u16string utf16_text = utf8_converter.from_bytes(text);
             self->binding_handler_delegate_->OnVirtualKey(utf16_text[0]);
           }
-          // If there is no input data, the backspace key cannot be used,
-          // so set dummy data.
-          if (self->zwp_text_input_v1_) {
-            zwp_text_input_v1_set_surrounding_text(self->zwp_text_input_v1_,
-                                                   " ", 1, 1);
-          }
+          // The actual surrounding text update arrives via Flutter's
+          // TextInputClient.updateEditingState -> UpdateTextInputState path.
         },
         .cursor_position = [](void* data,
                               zwp_text_input_v1* zwp_text_input_v1,
@@ -831,12 +821,6 @@ const zwp_text_input_v1_listener ELinuxWindowWayland::kZwpTextInputV1Listener =
           auto self = reinterpret_cast<ELinuxWindowWayland*>(data);
           if (self->binding_handler_delegate_) {
             self->binding_handler_delegate_->OnVirtualSpecialKey(KEY_BACKSPACE);
-          }
-          // If there is no input data, the backspace key cannot be used,
-          // so set dummy data.
-          if (self->zwp_text_input_v1_) {
-            zwp_text_input_v1_set_surrounding_text(self->zwp_text_input_v1_,
-                                                   " ", 1, 1);
           }
         },
         .keysym = [](void* data,
@@ -1529,6 +1513,33 @@ void ELinuxWindowWayland::SetVirtualKeyboardBottomInset(
   NotifyVirtualKeyboardInset();
 }
 
+void ELinuxWindowWayland::UpdateTextInputState(const std::string& text_utf8,
+                                               int32_t cursor_byte_offset,
+                                               int32_t anchor_byte_offset) {
+  surrounding_text_ = text_utf8;
+  surrounding_cursor_bytes_ = cursor_byte_offset;
+  surrounding_anchor_bytes_ = anchor_byte_offset;
+  SendSurroundingTextToCompositor();
+}
+
+void ELinuxWindowWayland::SendSurroundingTextToCompositor() {
+  if (zwp_text_input_v3_ && virtual_keyboard_visible_) {
+    zwp_text_input_v3_set_surrounding_text(zwp_text_input_v3_,
+                                           surrounding_text_.c_str(),
+                                           surrounding_cursor_bytes_,
+                                           surrounding_anchor_bytes_);
+    zwp_text_input_v3_set_text_change_cause(
+        zwp_text_input_v3_,
+        ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_INPUT_METHOD);
+    zwp_text_input_v3_commit(zwp_text_input_v3_);
+  } else if (zwp_text_input_v1_) {
+    zwp_text_input_v1_set_surrounding_text(zwp_text_input_v1_,
+                                           surrounding_text_.c_str(),
+                                           surrounding_cursor_bytes_,
+                                           surrounding_anchor_bytes_);
+  }
+}
+
 void ELinuxWindowWayland::NotifyVirtualKeyboardInset() {
   if (!binding_handler_delegate_) {
     return;
@@ -1885,17 +1896,27 @@ wl_cursor* ELinuxWindowWayland::GetWlCursor(const std::string& cursor_name,
 }
 
 void ELinuxWindowWayland::ShowVirtualKeyboard() {
+  virtual_keyboard_visible_ = true;
+
   if (zwp_text_input_v3_) {
     // First enable+commit to reset the state.
     zwp_text_input_v3_enable(zwp_text_input_v3_);
     zwp_text_input_v3_commit(zwp_text_input_v3_);
 
-    // Second enable with content_type set before commit, so the
-    // compositor sees both enable and content_type atomically.
+    // Second enable with content_type and surrounding_text set before commit,
+    // so the compositor sees enable, content_type and surrounding_text
+    // atomically.
     zwp_text_input_v3_enable(zwp_text_input_v3_);
     zwp_text_input_v3_set_content_type(zwp_text_input_v3_,
                                        GetWaylandContentHintV3(),
                                        GetWaylandContentPurposeV3());
+    zwp_text_input_v3_set_surrounding_text(zwp_text_input_v3_,
+                                           surrounding_text_.c_str(),
+                                           surrounding_cursor_bytes_,
+                                           surrounding_anchor_bytes_);
+    zwp_text_input_v3_set_text_change_cause(
+        zwp_text_input_v3_,
+        ZWP_TEXT_INPUT_V3_CHANGE_CAUSE_INPUT_METHOD);
     zwp_text_input_v3_commit(zwp_text_input_v3_);
   } else {
     if (native_window_) {
@@ -1908,10 +1929,13 @@ void ELinuxWindowWayland::ShowVirtualKeyboard() {
                                          GetWaylandContentPurposeV1());
       zwp_text_input_v1_set_preferred_language(zwp_text_input_v1_,
                                                input_type_info_.preferred_language.c_str());
+      zwp_text_input_v1_set_surrounding_text(zwp_text_input_v1_,
+                                             surrounding_text_.c_str(),
+                                             surrounding_cursor_bytes_,
+                                             surrounding_anchor_bytes_);
     }
   }
 
-  virtual_keyboard_visible_ = true;
   NotifyVirtualKeyboardInset();
 }
 

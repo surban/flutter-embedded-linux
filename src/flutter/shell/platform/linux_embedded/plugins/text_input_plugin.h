@@ -27,6 +27,10 @@ class TextInputPlugin {
   // Sends the current state of the given model to the Flutter engine.
   void SendStateUpdate(const TextInputModel& model);
 
+  // Pushes the current model's surrounding text and cursor/anchor offsets to
+  // the platform IME.
+  void PushSurroundingTextToDelegate(const TextInputModel& model);
+
   // Sends an action triggered by the Enter key to the Flutter engine.
   void EnterPressed(TextInputModel* model);
 

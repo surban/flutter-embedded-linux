@@ -89,6 +89,18 @@ class WindowBindingHandler {
   // occupies at the bottom of the window when visible.
   virtual void SetVirtualKeyboardBottomInset(int32_t height_physical_px) {}
 
+  // Called whenever the active text field's contents or selection change,
+  // so the backend can forward them to the platform IME.
+  //
+  // |text_utf8|          - Full UTF-8 text of the field. Empty when there is
+  //                        no active client.
+  // |cursor_byte_offset| - Cursor position as a byte offset into |text_utf8|.
+  // |anchor_byte_offset| - Selection anchor as a byte offset into |text_utf8|
+  //                        (equal to cursor offset for collapsed selections).
+  virtual void UpdateTextInputState(const std::string& text_utf8,
+                                    int32_t cursor_byte_offset,
+                                    int32_t anchor_byte_offset) {}
+
   // Returns the clipboard data.
   virtual std::string GetClipboardData() = 0;
 

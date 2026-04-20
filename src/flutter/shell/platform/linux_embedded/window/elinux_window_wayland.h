@@ -90,6 +90,11 @@ class ELinuxWindowWayland : public ELinuxWindow, public WindowBindingHandler {
   void SetVirtualKeyboardBottomInset(int32_t height_physical_px) override;
 
   // |FlutterWindowBindingHandler|
+  void UpdateTextInputState(const std::string& text_utf8,
+                            int32_t cursor_byte_offset,
+                            int32_t anchor_byte_offset) override;
+
+  // |FlutterWindowBindingHandler|
   std::string GetClipboardData() override;
 
   // |FlutterWindowBindingHandler|
@@ -121,6 +126,11 @@ class ELinuxWindowWayland : public ELinuxWindow, public WindowBindingHandler {
   // Converts the cached surface-unit height to physical pixels using the
   // current buffer scale. Sends 0 when the keyboard is not visible.
   void NotifyVirtualKeyboardInset();
+
+  // Sends the cached surrounding text (if any) to the currently active
+  // zwp_text_input object so the IME can make context-dependent decisions
+  // such as auto-capitalization. No-op if no text-input is active.
+  void SendSurroundingTextToCompositor();
 
   // Maps Flutter TextInputType to Wayland content purpose (v3).
   uint32_t GetWaylandContentPurposeV3() const;
@@ -198,6 +208,14 @@ class ELinuxWindowWayland : public ELinuxWindow, public WindowBindingHandler {
 
   // Current text input type info from Flutter.
   TextInputTypeInfo input_type_info_;
+
+  // Cached surrounding text from Flutter's active TextField. Forwarded to
+  // the platform IME via zwp_text_input_v{1,3}::set_surrounding_text so the
+  // IME can make context-aware decisions (auto-capitalization, word
+  // boundaries, etc.). Offsets are UTF-8 byte offsets into |surrounding_text_|.
+  std::string surrounding_text_;
+  int32_t surrounding_cursor_bytes_ = 0;
+  int32_t surrounding_anchor_bytes_ = 0;
 
   wl_display* wl_display_;
   wl_registry* wl_registry_;
