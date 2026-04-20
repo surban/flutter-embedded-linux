@@ -281,6 +281,10 @@ target_compile_options(${TARGET}
     ${EGL_CFLAGS}
 )
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(${TARGET} PRIVATE -Wno-psabi)
+endif()
+
 if(NOT BUILD_ELINUX_SO)
   # Generated plugin build rules
   include(${USER_PROJECT_PATH}/flutter/generated_plugins.cmake)
