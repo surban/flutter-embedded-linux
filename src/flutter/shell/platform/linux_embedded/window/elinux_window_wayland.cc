@@ -1524,8 +1524,8 @@ void ELinuxWindowWayland::UpdateVirtualKeyboardStatus(
 }
 
 void ELinuxWindowWayland::SetVirtualKeyboardBottomInset(
-    int32_t height_surface_units) {
-  virtual_keyboard_bottom_inset_surface_ = height_surface_units;
+    int32_t height_physical_px) {
+  virtual_keyboard_bottom_inset_px_ = height_physical_px;
   NotifyVirtualKeyboardInset();
 }
 
@@ -1536,8 +1536,7 @@ void ELinuxWindowWayland::NotifyVirtualKeyboardInset() {
 
   size_t bottom_px = 0;
   if (virtual_keyboard_visible_) {
-    bottom_px = static_cast<size_t>(
-        virtual_keyboard_bottom_inset_surface_ * current_scale_);
+    bottom_px = static_cast<size_t>(virtual_keyboard_bottom_inset_px_);
   }
 
   binding_handler_delegate_->OnVirtualKeyboardInsetChanged(bottom_px);

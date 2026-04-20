@@ -85,9 +85,9 @@ class WindowBindingHandler {
       const bool show,
       const TextInputTypeInfo& input_type_info = TextInputTypeInfo()) = 0;
 
-  // Sets the height (in Wayland surface units / logical pixels) that the
-  // on-screen keyboard occupies at the bottom of the window when visible.
-  virtual void SetVirtualKeyboardBottomInset(int32_t height_surface_units) {}
+  // Sets the height (in physical pixels) that the on-screen keyboard
+  // occupies at the bottom of the window when visible.
+  virtual void SetVirtualKeyboardBottomInset(int32_t height_physical_px) {}
 
   // Returns the clipboard data.
   virtual std::string GetClipboardData() = 0;

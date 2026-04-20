@@ -150,7 +150,7 @@ TextInputPlugin::TextInputPlugin(BinaryMessenger* messenger,
             height = std::get<int64_t>(args);
           } else {
             result->Error(kBadArgumentError,
-                          "Expected integer height in surface units");
+                          "Expected integer height in physical pixels");
             return;
           }
           if (height < 0) {
