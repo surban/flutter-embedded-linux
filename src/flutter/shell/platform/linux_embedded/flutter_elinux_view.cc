@@ -4,6 +4,8 @@
 
 #include "flutter/shell/platform/linux_embedded/flutter_elinux_view.h"
 
+#include <linux/input-event-codes.h>
+
 #include <chrono>
 #include <cmath>
 
@@ -292,6 +294,23 @@ void FlutterELinuxView::OnVirtualKey(uint32_t code_point) {
 }
 
 void FlutterELinuxView::OnVirtualSpecialKey(uint32_t keycode) {
+  // Keys whose effect depends on the rendered text layout (multi-line
+  // vertical navigation, page-up/down) cannot be handled by the embedder's
+  // TextInputModel because it has no knowledge of line breaks or soft
+  // wrap. Forward them through the flutter/keyevent channel so the
+  // framework's EditableText handles them like a physical keyboard press.
+  switch (keycode) {
+    case KEY_UP:
+    case KEY_DOWN:
+    case KEY_PAGEUP:
+    case KEY_PAGEDOWN:
+      keyboard_handler_->OnKey(keycode, true);
+      keyboard_handler_->OnKey(keycode, false);
+      return;
+    default:
+      break;
+  }
+
   auto code_point = keyboard_handler_->GetCodePoint(keycode);
   textinput_handler_->OnKeyPressed(keycode, code_point);
 }
