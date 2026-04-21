@@ -90,6 +90,10 @@ class FlutterViewController {
     // True:  Sync to compositor redraw/v-blank  (eglSwapInterval 1)
     // False: Do not sync to compositor redraw/v-blank (eglSwapInterval 0)
     bool enable_vsync;
+
+    // Initial height (in physical pixels) that the on-screen keyboard occupies
+    // at the bottom of the window, if visible.
+    int32_t virtual_keyboard_bottom_inset_px;
   } ViewProperties;
 
   // Creates a FlutterView that can be parented into a Windows View hierarchy

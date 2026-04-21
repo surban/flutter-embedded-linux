@@ -120,6 +120,10 @@ typedef struct {
   // True:  Sync to compositor redraw/v-blank  (eglSwapInterval 1)
   // False: Do not sync to compositor redraw/v-blank (eglSwapInterval 0)
   bool enable_vsync;
+
+  // Height (in physical pixels) that the on-screen keyboard occupies
+  // at the bottom of the window, if visible.
+  int32_t virtual_keyboard_bottom_inset_px;
 } FlutterDesktopViewProperties;
 
 // ========== View Controller ==========

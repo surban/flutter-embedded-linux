@@ -1063,6 +1063,8 @@ ELinuxWindowWayland::ELinuxWindowWayland(
   view_properties_ = view_properties;
   current_scale_ =
       view_properties.force_scale_factor ? view_properties.scale_factor : 1.0;
+  virtual_keyboard_bottom_inset_px_ =
+      view_properties.virtual_keyboard_bottom_inset_px;
   SetRotation(view_properties_.view_rotation);
 
   auto xcursor_size_string = std::getenv(kXcursorSizeEnvironmentKey);

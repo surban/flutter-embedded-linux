@@ -45,6 +45,8 @@ FlutterViewController::FlutterViewController(
   c_view_properties.force_scale_factor = view_properties.force_scale_factor;
   c_view_properties.scale_factor = view_properties.scale_factor;
   c_view_properties.enable_vsync = view_properties.enable_vsync;
+  c_view_properties.virtual_keyboard_bottom_inset_px =
+      view_properties.virtual_keyboard_bottom_inset_px;
 
   controller_ = FlutterDesktopViewControllerCreate(&c_view_properties,
                                                    engine_->RelinquishEngine());
